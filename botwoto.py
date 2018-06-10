@@ -230,14 +230,8 @@ while True:
 
                 if message[0] == "!":
                     trigger = message.strip().split(" ")[0]    
-                    print(trigger)
-
-                    if re.search(r"!err", message):
-                        print("err!")
-                        raise Exception('ERROR')
 
                     if trigger == "!song":
-                        print("is song")
                         REFRESHTOKEN = config["Spotify"]["REFRESHTOKEN"]
 
                         if is_live_stream('bradWOTO'):
@@ -290,10 +284,8 @@ while True:
                             print("brad is not live")
 
                     if trigger.lower() in triggers:
-                        print("trigger in triggers!")
                         clearance = clearances[trigger]
                         reply = responses[trigger]
-                        print(reply)
 
                         if re.search(r""+trigger+" [@]?[a-zA-Z0-9]+", message ):
                             if clearance == 'mod' and user not in mods:
