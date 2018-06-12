@@ -207,7 +207,7 @@ while True:
                     if "moderators" in line:
                         tempmsg = line.split(":", 3)
                         tempmods = tempmsg[3].split(",")
-                        #print(tempmods)
+
                         mods = []
                         mods.append("karlklaxon")
                         mods.append("bradwoto")
@@ -257,21 +257,21 @@ while True:
                             elif 'error' in r.text:
 
                                 headers = {"Content-Type":"application/x-www-form-urlencoded"}
-                                r2 = requests.post('https://accounts.spotify.com/api/token?grant_type=refresh_token&refresh_token='+config["Spotify"]["REFRESHTOKEN"]+'&client_id='+config["Spotify"]["CLIENTID"]+'&client_secret='+config["Spotify"]["CLIENTSECRET"], headers=headers)
-                                ACCESSTOKEN = r2.json()['access_token']
+                                refreshAccessToken = requests.post('https://accounts.spotify.com/api/token?grant_type=refresh_token&refresh_token='+config["Spotify"]["REFRESHTOKEN"]+'&client_id='+config["Spotify"]["CLIENTID"]+'&client_secret='+config["Spotify"]["CLIENTSECRET"], headers=headers)
+                                ACCESSTOKEN = refreshAccessToken.json()['access_token']
 
                                 time.sleep(1)
 
-                                r3=requests.get("https://api.spotify.com/v1/me/player/currently-playing/", headers={"Authorization":"Bearer "+ACCESSTOKEN});
-                                response2 = r3.json()
+                                r=requests.get("https://api.spotify.com/v1/me/player/currently-playing/", headers={"Authorization":"Bearer "+ACCESSTOKEN});
+                                response = r.json()
 
-                                if response2['is_playing']:
+                                if response['is_playing']:
 
                                     result = ''
-                                    for name in response2['item']['artists']:
+                                    for name in response['item']['artists']:
                                         result += str(name['name']) + " "
 
-                                    result += "- " + str(response2['item']['name'])
+                                    result += "- " + str(response['item']['name'])
 
                                     sendMessage(s, "Brad's spotify is currently playing: " + result)
                                 else:
