@@ -265,27 +265,13 @@ while True:
                                 r=requests.get("https://api.spotify.com/v1/me/player/currently-playing/", headers={"Authorization":"Bearer "+ACCESSTOKEN});
                                 response = r.json()
 
-                                if response['is_playing']:
+                            result = ''
+                            if response['is_playing']:
+                                for name in response['item']['artists']:
+                                    result += str(name['name']) + " "
 
-                                    result = ''
-                                    for name in response['item']['artists']:
-                                        result += str(name['name']) + " "
-
-                                    result += "- " + str(response['item']['name'])
-
-                                    sendMessage(s, "Brad's spotify is currently playing: " + result)
-                                else:
-                                    continue
-
-                            else:
-
-                                result = ''
-                                if response['is_playing']:
-                                    for name in response['item']['artists']:
-                                        result += str(name['name']) + " "
-
-                                    result += "- " + str(response['item']['name'])
-                                    sendMessage(s, "Brad's spotify is currently playing: " + result)
+                                result += "- " + str(response['item']['name'])
+                                sendMessage(s, "Brad's spotify is currently playing: " + result)
                         else:
                             print("brad is not live")
 
@@ -487,7 +473,7 @@ while True:
 
 
         except:
-            print(doesntexist)
+            # print(doesntexist)
             print("got error, restarting")
             
             pass
