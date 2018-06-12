@@ -1,3 +1,6 @@
+
+# -*- coding: utf-8 -*-
+
 import time
 import ast
 import socket
@@ -18,7 +21,7 @@ config.read('config.ini')
 
 
 def dbGetOne(query):
-    db = pymysql.connect(config["Database"]["HOSTNAME"],config["Database"]["USERNAME"],config["Database"]["PASSWORD"],config["Database"]["DBNAME"] )
+    db = pymysql.connect(config["Database"]["HOSTNAME"],config["Database"]["USERNAME"],config["Database"]["PASSWORD"],config["Database"]["DBNAME"], charset='utf8mb4')
     cursor = db.cursor()
     cursor.execute(query)
     data = cursor.fetchone()
@@ -26,7 +29,7 @@ def dbGetOne(query):
     return data
 
 def dbGetAll(query):
-    db = pymysql.connect(config["Database"]["HOSTNAME"],config["Database"]["USERNAME"],config["Database"]["PASSWORD"],config["Database"]["DBNAME"] )
+    db = pymysql.connect(config["Database"]["HOSTNAME"],config["Database"]["USERNAME"],config["Database"]["PASSWORD"],config["Database"]["DBNAME"], charset='utf8mb4')
     cursor = db.cursor()
     cursor.execute(query)
     data = cursor.fetchall()
@@ -35,14 +38,14 @@ def dbGetAll(query):
 
 def dbExecute(query):
     
-    db = pymysql.connect(config["Database"]["HOSTNAME"],config["Database"]["USERNAME"],config["Database"]["PASSWORD"],config["Database"]["DBNAME"] )
+    db = pymysql.connect(config["Database"]["HOSTNAME"],config["Database"]["USERNAME"],config["Database"]["PASSWORD"],config["Database"]["DBNAME"], charset='utf8mb4')
     cursor = db.cursor()
     cursor.execute(query)
     db.close()
 
 def dbExecuteargs(query, arg):
    
-    db = pymysql.connect(config["Database"]["HOSTNAME"],config["Database"]["USERNAME"],config["Database"]["PASSWORD"],config["Database"]["DBNAME"] )
+    db = pymysql.connect(config["Database"]["HOSTNAME"],config["Database"]["USERNAME"],config["Database"]["PASSWORD"],config["Database"]["DBNAME"], charset='utf8mb4')
     cursor = db.cursor()
     cursor.execute(query, arg)
     db.close()
@@ -65,11 +68,12 @@ def openSocket():
     s.send(str("JOIN #" + config["Twitch"]["CHANNEL"] + "\r\n").encode("utf-8"))
     
     return s
+
     
 def sendMessage(s, message):
-    messageTemp = "PRIVMSG #" + config["Twitch"]["CHANNEL"]+ " :" + message
+    messageTemp = "PRIVMSG #" + config["Twitch"]["CHANNEL"]+ " :" + str(message)
     s.send(str(messageTemp + "\r\n").encode("utf-8"))
-    print("Sent: " + messageTemp)
+    print("Sent: " + str(messageTemp.encode('utf-8')) )
 
 def joinRoom(s):
     readbuffer = ""
@@ -109,11 +113,16 @@ def load_commands():
     triggerlist = []
     replies  = {}
     levels = {}
-    allCommands = dbGetAll("SELECT * FROM commands")
+
+    allCommands = dbGetAll("SELECT * FROM commands3")
+
+
     for command in allCommands:
+        print(repr(command[0]))
         trigger = str(command[0])
         triggerlist.append(trigger)
-        reply = str(command[2].encode('ascii', 'ignore').decode('ascii'))
+        reply = command[1]
+
         
         replies[trigger] = reply
         levels[trigger] = str(command[2])
@@ -212,7 +221,7 @@ while True:
                 else:
                     continue
 
-                print("{} typed: {} \n".format(user, message))
+                print("{} typed: {} \n".format(user, message.encode('utf-8')))
 
 
                 if re.search(r"[a-zA-Z]{2,}\.[a-zA-Z]{2,}", message ) and (user not in mods):
@@ -249,14 +258,11 @@ while True:
 
                                 headers = {"Content-Type":"application/x-www-form-urlencoded"}
                                 r2 = requests.post('https://accounts.spotify.com/api/token?grant_type=refresh_token&refresh_token='+config["Spotify"]["REFRESHTOKEN"]+'&client_id='+config["Spotify"]["CLIENTID"]+'&client_secret='+config["Spotify"]["CLIENTSECRET"], headers=headers)
-
-
                                 ACCESSTOKEN = r2.json()['access_token']
 
                                 time.sleep(1)
 
                                 r3=requests.get("https://api.spotify.com/v1/me/player/currently-playing/", headers={"Authorization":"Bearer "+ACCESSTOKEN});
-
                                 response2 = r3.json()
 
                                 if response2['is_playing']:
@@ -323,11 +329,9 @@ while True:
                         print(reply.encode("utf-8"))
 
                         if command[0] == '!':
-                            query = "INSERT INTO commands (command, reply, clearance) VALUES ( %s, %s, %s)"
-                           
-                            
+                            query = "INSERT INTO commands3 (command, reply, clearance) VALUES ( %s, %s, %s)"
 
-                            dbExecuteargs(query, (command, str(reply.encode("utf-8")), clearance))
+                            dbExecuteargs(query, (command, reply, clearance))
                             sendMessage(s, "Command: '"+command+"' added.")
                             triggers.append(command)
                             responses[command] = reply
@@ -339,7 +343,7 @@ while True:
                     print("** Removing command **")
                     message = message.split(' ', 2)
 
-                    dbExecute("DELETE FROM commands WHERE command='"+str(message[1]).strip()+"' ")
+                    dbExecute("DELETE FROM commands3 WHERE command='"+str(message[1]).strip()+"' ")
                     (triggers, responses, clearances) = load_commands()
                     if (message[1].lower() in timertriggers):
                         timertriggers.remove(message[1].lower())
@@ -479,7 +483,7 @@ while True:
 
 
         except:
-            # print(doesntexist)
+            print(doesntexist)
             print("got error, restarting")
             
             pass
