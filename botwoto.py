@@ -305,7 +305,7 @@ while True:
                         sendMessage(s, "Command {} doesn't exist".format(command))
                         continue
                     else:
-                        query = "UPDATE commands2 SET reply='"+updatedCommand+"' WHERE command='"+command+"'"                        
+                        query = "UPDATE commands3 SET reply='"+updatedCommand+"' WHERE command='"+command+"'"                        
                         dbExecute(query)
                         sendMessage(s, "Command: '"+command+"' edited.")
 
