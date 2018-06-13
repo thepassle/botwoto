@@ -294,7 +294,23 @@ while True:
                             else:
                                 print("sending")
                                 sendMessage(s, reply)
+                
+                #edit command
+                if (re.search(r"^!editcom ![a-zA-Z0-9]+", message )) and (user in mods):
+                    print("** Editing command **")
 
+                    updatedCommand = re.split(r'^!editcom ![a-zA-Z0-9]{2,}\b ', message)[1]
+                    command = message.split(' ')[1]
+                    if command.lower() not in triggers:
+                        sendMessage(s, "Command {} doesn't exist".format(command))
+                        continue
+                    else:
+                        query = "UPDATE commands2 SET reply='"+updatedCommand+"' WHERE command='"+command+"'"                        
+                        dbExecute(query)
+                        sendMessage(s, "Command: '"+command+"' edited.")
+
+                        (triggers, responses, clearances) = load_commands()
+                        continue 
 
                 #add command
                 if (re.search(r"!addcom -ul=all ![a-zA-Z0-9]+", message ) or re.search(r"!addcom -ul=mod ![a-zA-Z0-9]+", message )) and (user in mods):
