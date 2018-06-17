@@ -292,13 +292,19 @@ while True:
                             if clearance == 'mod' and user not in mods:
                                 print("user not in mods")
                                 pass
+                            elif clearance == 'sub' and user_subscribed == False:
+                                print("user not subbed")
+                                pass
                             else:
                                 target = message.strip().split(' ',1)[1] 
                                 print("this should @ target and print message.")
                                 sendMessage(s, target +": " + reply)
                         elif message == trigger:
                             if clearance == 'mod' and user not in mods:
-                                print("passing")
+                                print("user not in mods")
+                                pass
+                            elif clearance == 'sub' and user_subscribed == False:
+                                print("user not subbed")
                                 pass
                             else:
                                 print("sending")
@@ -322,7 +328,7 @@ while True:
                         continue 
 
                 #add command
-                if (re.search(r"!addcom -ul=all ![a-zA-Z0-9]+", message ) or re.search(r"!addcom -ul=mod ![a-zA-Z0-9]+", message )) and (user in mods):
+                if (re.search(r"!addcom -ul=all ![a-zA-Z0-9]+", message ) or re.search(r"!addcom -ul=mod ![a-zA-Z0-9]+", message ) or re.search(r"!addcom -ul=sub ![a-zA-Z0-9]+", message )) and (user in mods):
                     print("** Adding command **")
                     #if theres only '!addcom' and '!someword', but no reply
                     if len(message.split(' ')) <= 3:
