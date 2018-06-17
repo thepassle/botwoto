@@ -88,6 +88,7 @@ def joinRoom(s):
    
     print("Finished Connecting...")
     s.send("CAP REQ :twitch.tv/commands\r\n".encode("UTF-8"))
+    s.send("CAP REQ :twitch.tv/tags\r\n".encode("UTF-8"))
     sendMessage(s, "/mods")
 def loadingComplete(line):
     if("End of /NAMES list" in line):
@@ -118,7 +119,6 @@ def load_commands():
 
 
     for command in allCommands:
-        print(repr(command[0]))
         trigger = str(command[0])
         triggerlist.append(trigger)
         reply = command[1]
@@ -193,6 +193,14 @@ while True:
                 pass
             
             for line in temp: 
+
+                for item in line.split(';'):
+                    if 'subscriber=1' in item:
+                        user_subscribed = True
+                        break
+                    else: 
+                        user_subscribed = False
+
                 if "PING" in line:
                     s.send("PONG :tmi.twitch.tv\r\n".encode("utf-8"))
                     print("Ping? Pong!")
@@ -224,7 +232,8 @@ while True:
                 print("{} typed: {} \n".format(user, message.encode('utf-8')))
 
 
-                if re.search(r"[a-zA-Z]{2,}\.[a-zA-Z]{2,}", message ) and (user not in mods):
+                if re.search(r"[a-zA-Z]{2,}\.[a-zA-Z]{2,}", message) and (user_subscribed ==  False or user not in mods):
+                    print('user is mod or subscribed')
                     if user.lower() in permits:
                         permits.remove(user)
                         
