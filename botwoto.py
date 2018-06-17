@@ -223,8 +223,7 @@ while True:
 
                 print("{} typed: {} \n".format(user, message.encode('utf-8')))
 
-
-                if re.search(r"[a-zA-Z]{2,}\.[a-zA-Z]{2,}", message ) and (user not in mods):
+                if re.search(r"[a-zA-Z]{2,}\.[a-zA-Z]{2,}", message) and ('clips.twitch.tv' not in message) and (user not in mods):
                     if user.lower() in permits:
                         permits.remove(user)
                         
