@@ -305,8 +305,10 @@ while True:
                         sendMessage(s, "Command {} doesn't exist".format(command))
                         continue
                     else:
-                        query = "UPDATE commands3 SET reply='"+updatedCommand+"' WHERE command='"+command+"'"                        
-                        dbExecute(query)
+
+                        query = "UPDATE commands3 SET reply=%s WHERE command= %s"
+
+                        dbExecuteargs(query, (updatedCommand, command))
                         sendMessage(s, "Command: '"+command+"' edited.")
 
                         (triggers, responses, clearances) = load_commands()
@@ -489,8 +491,8 @@ while True:
 
 
         except:
-            # print(doesntexist)
-            print("got error, restarting")
+            print(doesntexist)
+            # print("got error, restarting")
             
             pass
         else:
