@@ -489,6 +489,8 @@ while True:
                     if re.search(r"^!addquote", message ) and (user in mods):
                         print("** Add quote **")
 
+                        totalquotes = dbGetOne("SELECT COUNT(quote) FROM quotes")[0]
+
                         newquote = str(message.strip().split(' ', 1)[1])
                         date = str(datetime.datetime.now()).split(" ")[0]
                         totalquotes = str(int(totalquotes+1))
@@ -498,8 +500,8 @@ while True:
 
 
         except:
-            print(doesntexist)
-            # print("got error, restarting")
+            # print(doesntexist)
+            print("got error, restarting")
             
             pass
         else:
