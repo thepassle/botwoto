@@ -496,7 +496,7 @@ while True:
                         totalquotes = str(int(totalquotes+1))
 
                         sendMessage(s, "Added quote #" + totalquotes)
-                        dbExecuteargs('INSERT INTO quotes (number, quote) VALUES ( %s, %s)', (totalquotes, "{} {} #{}".format(newquote, date, totalquotes)))
+                        dbExecuteargs('INSERT INTO quotes (nummer, quote) VALUES ( %s, %s)', (totalquotes, "{} {} #{}".format(newquote, date, totalquotes)))
 
 
         except:
