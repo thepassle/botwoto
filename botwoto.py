@@ -283,9 +283,17 @@ while True:
                                 print("user not in mods")
                                 pass
                             else:
-                                target = message.strip().split(' ',1)[1] 
-                                print("this should @ target and print message.")
-                                sendMessage(s, target +": " + reply)
+                                if '@touser@' in reply or '@user@' in reply:
+                                    target = message.strip().split(' ',1)[1] 
+                                    print("this should replace @target in the reply and print message.")
+                                    
+                                    reply = reply.replace('@touser@', target)
+                                    reply = reply.replace('@user@', user)
+                                    sendMessage(s, reply)
+                                else:
+                                    target = message.strip().split(' ',1)[1] 
+                                    print("this should @ target and print message.")
+                                    sendMessage(s, target +": " + reply)
                         elif message == trigger:
                             if clearance == 'mod' and user not in mods:
                                 print("passing")
