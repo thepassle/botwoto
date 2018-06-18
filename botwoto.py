@@ -473,9 +473,11 @@ while True:
 
                         messages = message.split(' ')
                         number = messages[1]
-
-                        quote = dbGetOne("SELECT * FROM quotes WHERE nummer = '"+str(number)+"'")
-                        sendMessage(s, str(quote[1]))
+                        try:
+                            quote = dbGetOne("SELECT * FROM quotes WHERE nummer = '"+str(number)+"'")
+                            sendMessage(s, str(quote[1]))
+                        except:
+                            sendMessage(s, "Quote #"+number+" doesn't exist.")
 
 
                     if re.search(r"^!delquote [0-9]+", message ) and (user in mods):
@@ -489,14 +491,14 @@ while True:
                     if re.search(r"^!addquote", message ) and (user in mods):
                         print("** Add quote **")
 
-                        totalquotes = dbGetOne("SELECT COUNT(quote) FROM quotes")[0]
+                        lastQuote = dbGetOne("SELECT nummer FROM quotes ORDER BY nummer DESC LIMIT 1")[0]
 
                         newquote = str(message.strip().split(' ', 1)[1])
                         date = str(datetime.datetime.now()).split(" ")[0]
-                        totalquotes = str(int(totalquotes+1))
+                        lastQuote = str(int(lastQuote+1))
 
-                        sendMessage(s, "Added quote #" + totalquotes)
-                        dbExecuteargs('INSERT INTO quotes (nummer, quote) VALUES ( %s, %s)', (totalquotes, "{} {} #{}".format(newquote, date, totalquotes)))
+                        sendMessage(s, "Added quote #" + lastQuote)
+                        dbExecuteargs('INSERT INTO quotes (nummer, quote) VALUES ( %s, %s)', (lastQuote, "{} {} #{}".format(newquote, date, lastQuote)))
 
 
         except:
