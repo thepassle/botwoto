@@ -55,6 +55,7 @@ def getUser(line):
     return name.group(1).lower()
 
 def getMessage(line):
+    # This is really not great, should fix. Works for now.
     message = re.search(r'(.*?)PRIVMSG #bradwoto :', line)
     return str(line.split(message.group(1))[1].strip().replace('PRIVMSG #bradwoto :', ''))
 
