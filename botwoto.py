@@ -51,9 +51,8 @@ def dbExecuteargs(query, arg):
     db.close()
 
 def getUser(line):
-    name = re.search('display-name=(.*?);', line)
-    name2 = name[0].split('=')[1].replace(';','').strip().lower()
-    return name2
+    name = re.search(r'display-name=(.*?);', line)
+    return name.group(1).lower()
 
 def getMessage(line):
     message = re.search(r'(.*?)PRIVMSG #(.*?) :', line)
