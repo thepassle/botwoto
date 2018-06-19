@@ -44,7 +44,7 @@ def dbExecute(query):
     db.close()
 
 def dbExecuteargs(query, arg):
-   
+
     db = pymysql.connect(config["Database"]["HOSTNAME"],config["Database"]["USERNAME"],config["Database"]["PASSWORD"],config["Database"]["DBNAME"], charset='utf8mb4')
     cursor = db.cursor()
     cursor.execute(query, arg)
@@ -52,8 +52,8 @@ def dbExecuteargs(query, arg):
 
 def getUser(line):
     name = re.search('display-name=(.*?);', line)
-    name = name[0].split('=')[1].replace(';','').strip().lower()
-    return name
+    name2 = name[0].split('=')[1].replace(';','').strip().lower()
+    return name2
 
 def getMessage(line):
     message = re.search(r'(.*?)PRIVMSG #(.*?) :', line)
@@ -518,8 +518,8 @@ while True:
 
 
         except:
-            # print(doesntexist)
-            print("got error, restarting")
+            print(doesntexist)
+            # print("got error, restarting")
             
             pass
         else:
