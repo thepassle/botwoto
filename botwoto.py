@@ -51,14 +51,13 @@ def dbExecuteargs(query, arg):
     db.close()
 
 def getUser(line):
-    separate = line.split(":", 2)
-    user = separate[1].split("!", 1)[0]
-    return str(user)
+    name = re.search('display-name=(.*?);', line)
+    name = name[0].split('=')[1].replace(';','').strip().lower()
+    return name
 
 def getMessage(line):
-    separate = line.split(":", 2)
-    message = separate[2]
-    return str(message).strip()
+    message = re.search(r'(.*?)PRIVMSG #(.*?) :', line)
+    return str(line.split(message[0])[1].strip())
 
 def openSocket():
     s = socket.socket()
@@ -68,7 +67,6 @@ def openSocket():
     s.send(str("JOIN #" + config["Twitch"]["CHANNEL"] + "\r\n").encode("utf-8"))
     
     return s
-
     
 def sendMessage(s, message):
     messageTemp = "PRIVMSG #" + config["Twitch"]["CHANNEL"]+ " :" + str(message)
@@ -85,10 +83,11 @@ def joinRoom(s):
         for line in temp:
             print(line)
             Loading = loadingComplete(line)
-   
     print("Finished Connecting...")
+    s.send("CAP REQ :twitch.tv/tags\r\n".encode("UTF-8"))
     s.send("CAP REQ :twitch.tv/commands\r\n".encode("UTF-8"))
     sendMessage(s, "/mods")
+
 def loadingComplete(line):
     if("End of /NAMES list" in line):
         return False
@@ -129,6 +128,7 @@ def load_commands():
     print(triggerlist)
 
     return (triggerlist, replies, levels)
+
 def taskLoop(s, replies, timers):
     is_live = False
     while True:
@@ -193,16 +193,23 @@ while True:
                 pass
             
             for line in temp: 
+
+                if 'subscriber=1' in line:
+                    user_subscribed = True
+                else: 
+                    user_subscribed = False
+
                 if "PING" in line:
                     s.send("PONG :tmi.twitch.tv\r\n".encode("utf-8"))
                     print("Ping? Pong!")
                     continue
+
                 if "PRIVMSG" in line:
                     user = getUser(line)
-                    
                     if user in mods:
                         print("User is moderator.")
                     message = getMessage(line)
+
                 elif "NOTICE" in line:
                     if "moderators" in line:
                         tempmsg = line.split(":", 3)
@@ -222,8 +229,9 @@ while True:
                     continue
 
                 print("{} typed: {} \n".format(user, message.encode('utf-8')))
+                # if re.search(r"[a-zA-Z]{2,}\.[a-zA-Z]{2,}", message) and ('clips.twitch.tv' not in message) and (user_subscribed == False or user not in mods):
 
-                if re.search(r"[a-zA-Z]{2,}\.[a-zA-Z]{2,}", message) and ('clips.twitch.tv' not in message) and (user not in mods):
+                if re.search(r"[a-zA-Z]{2,}\.[a-zA-Z]{2,}", message) and ('clips.twitch.tv' not in message) and (user not in mods) and (user_subscribed == False):
                     if user.lower() in permits:
                         permits.remove(user)
                         
@@ -282,6 +290,9 @@ while True:
                             if clearance == 'mod' and user not in mods:
                                 print("user not in mods")
                                 pass
+                            elif clearance == 'sub' and user_subscribed == False:
+                                print("user not subbed")
+                                pass
                             else:
                                 if '@touser@' in reply or '@user@' in reply:
                                     target = message.strip().split(' ',1)[1] 
@@ -294,12 +305,17 @@ while True:
                                     target = message.strip().split(' ',1)[1] 
                                     print("this should @ target and print message.")
                                     sendMessage(s, target +": " + reply)
+
                         elif message == trigger:
                             if clearance == 'mod' and user not in mods:
-                                print("passing")
+                                print("user not in mods")
                                 pass
+                            elif clearance == 'sub' and user_subscribed == False:
+                                print("user not subbed")
                             else:
                                 print("sending")
+                                reply = reply.replace('@user@', user)
+
                                 sendMessage(s, reply)
                 
                 #edit command
