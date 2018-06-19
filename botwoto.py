@@ -55,8 +55,8 @@ def getUser(line):
     return name.group(1).lower()
 
 def getMessage(line):
-    message = re.search(r'(.*?)PRIVMSG #(.*?) :', line)
-    return str(line.split(message[0])[1].strip())
+    message = re.search(r'(.*?)PRIVMSG #bradwoto :', line)
+    return str(line.split(message.group(1))[1].strip().replace('PRIVMSG #bradwoto :', ''))
 
 def openSocket():
     s = socket.socket()
