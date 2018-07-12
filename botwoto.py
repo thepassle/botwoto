@@ -177,13 +177,16 @@ while True:
 
             try:
                 chat_data =  s.recv(1024)
-                
+                if chat_data == b'':
+                    raise socket.timeout
             except:
                 print("Error: disconnected.. Reconnecting")
                 s = openSocket()
                 joinRoom(s)
                 continue
-
+            if not loopThread.is_alive():
+                print("Timer thread not running..Restarting...")
+                loopThread.start()
             readbuffer = readbuffer + chat_data.decode("utf-8")
             temp = readbuffer.split('\r\n')
             readbuffer = temp.pop()
@@ -517,8 +520,8 @@ while True:
 
 
         except:
-            print(doesntexist)
-            # print("got error, restarting")
+#            print(doesntexist)
+            print("got error, restarting")
             
             pass
         else:
