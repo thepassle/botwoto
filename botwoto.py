@@ -473,15 +473,17 @@ while True:
                     if re.search(r"^!quote random$", message ):
                         print("** Quote random **")
 
-                        totalquotes = dbGetOne("SELECT COUNT(quote) FROM quotes")[0]
+                        
 
                         sent = False
                         while sent == False:
                             try:
-                                number = random.randint(1,totalquotes)
-                                quote = dbGetOne("SELECT * FROM quotes WHERE nummer = '"+str(number)+"'")
+                                
+                                quotes = dbGetOne("call getrandomquote()")
+                                #quote = random.choice(quotes)
+                                
 
-                                sendMessage(s, str(quote[1]))
+                                sendMessage(s, "{}".format(quotes[1]))
                                 sent = True
                             except:
                                 continue
@@ -491,37 +493,43 @@ while True:
                         print("** Quote <nr> **")
 
                         messages = message.split(' ')
-                        number = messages[1]
-                        try:
-                            quote = dbGetOne("SELECT * FROM quotes WHERE nummer = '"+str(number)+"'")
-                            sendMessage(s, str(quote[1]))
-                        except:
-                            sendMessage(s, "Quote #"+number+" doesn't exist.")
-
+                        number = int(messages[1])
+                        print(number)
+                        quote = dbGetOne("SELECT * FROM quotes WHERE id = {}".format(int(number)))
+                        print(quote)
+                        if quote is not None:
+                            sendMessage(s, "{}".format(quote[1]))
+                        else:
+                            sendMessage(s, "Quote #{} does not exist.".format(number))
 
                     if re.search(r"^!delquote [0-9]+", message ) and (user in mods):
                         print("** Remove quote **")
-
-                        quotenr = message.split(' ', 1)[1]
-                        dbExecute('DELETE FROM quotes WHERE nummer='+str(quotenr)+'')
-                        sendMessage(s, "Quote #" + quotenr + " deleted.")
+                        messages = message.split(' ')
+                        number = int(messages[1])
+                        quote = dbGetOne("SELECT * FROM quotes WHERE id = {}".format(int(number)))
+                        print(quote)
+                        if quote is not None:
+                            dbExecute("DELETE FROM quotes WHERE id = {}".format(number))
+                            sendMessage(s, "Quote #{} deleted.".format(number))
+                        else:
+                            sendMessage(s, "Quote #{} does not exist.".format(number))
 
 
                     if re.search(r"^!addquote", message ) and (user in mods):
                         print("** Add quote **")
-
-                        lastQuote = dbGetOne("SELECT nummer FROM quotes ORDER BY nummer DESC LIMIT 1")[0]
-
+                        
+                        nextquote  = dbGetOne("SELECT AUTO_INCREMENT FROM INFORMATION_SCHEMA.TABLES WHERE table_name = 'quotes' AND table_schema = DATABASE( )")[0]
+                        print(nextquote)
                         newquote = str(message.strip().split(' ', 1)[1])
                         date = str(datetime.datetime.now()).split(" ")[0]
-                        lastQuote = str(int(lastQuote+1))
+                        
 
-                        sendMessage(s, "Added quote #" + lastQuote)
-                        dbExecuteargs('INSERT INTO quotes (nummer, quote) VALUES ( %s, %s)', (lastQuote, "{} {} #{}".format(newquote, date, lastQuote)))
+                        sendMessage(s, "Added quote #{}".format(nextquote))
+                        dbExecuteargs('INSERT INTO quotes (quote) VALUES (%s)', ("{} {}".format(newquote, date)))
 
 
         except:
-#            print(doesntexist)
+            print(doesntexist)
             print("got error, restarting")
             
             pass
