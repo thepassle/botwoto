@@ -286,8 +286,8 @@ while True:
                             print("brad is not live")
 
                     if trigger.lower() in triggers:
-                        clearance = clearances[trigger]
-                        reply = responses[trigger]
+                        clearance = clearances[trigger.lower()]
+                        reply = responses[trigger.lower()]
 
                         if re.search(r""+trigger+" [@]?[a-zA-Z0-9]+", message ):
                             if clearance == 'mod' and user not in mods:
