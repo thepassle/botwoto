@@ -19,6 +19,34 @@ from threading import Thread
 config = configparser.ConfigParser()
 config.read('config.ini')
 
+class BotCommands:
+
+    def __init__(self):
+        self.triggers = []
+        self.replies = {}
+        self.clearances = {}
+        self.timertriggers = config["Timers"]["TRIGGERS"].split(",")
+        self.timertest = False
+
+    def load_commands(self):
+        print("Loading commands...")
+        self.triggers.clear()
+        self.replies.clear()
+        self.clearances.clear()
+
+        allCommands = dbGetAll("SELECT * FROM commands3")
+
+
+        for command in allCommands:
+            print(repr(command[0]))
+            trigger = str(command[0])
+            self.triggers.append(trigger)
+            reply = command[1]
+
+        
+            self.replies[trigger] = reply
+            self.clearances[trigger] = str(command[2])
+        print(self.triggers)
 
 def dbGetOne(query):
     db = pymysql.connect(config["Database"]["HOSTNAME"],config["Database"]["USERNAME"],config["Database"]["PASSWORD"],config["Database"]["DBNAME"], charset='utf8mb4')
@@ -107,42 +135,22 @@ def is_live_stream(streamer_name):
             print("Twitch API did not respond, trying again in 60 seconds..")
             time.sleep(60)
 
-def load_commands():
-    print("Loading commands...")
-    triggerlist = []
-    replies  = {}
-    levels = {}
-
-    allCommands = dbGetAll("SELECT * FROM commands3")
 
 
-    for command in allCommands:
-        print(repr(command[0]))
-        trigger = str(command[0])
-        triggerlist.append(trigger)
-        reply = command[1]
-
-        
-        replies[trigger] = reply
-        levels[trigger] = str(command[2])
-    print(triggerlist)
-
-    return (triggerlist, replies, levels)
-
-def taskLoop(s, replies, timers):
+def taskLoop():
     is_live = False
     while True:
-        if is_live:
-            if(len(timers) > 0):
-                sendMessage(s, replies[random.choice(timers)])
+        if is_live or commands.timertest:
+            if(len(commands.timertriggers) > 0):
+                sendMessage(s, commands.replies[random.choice(commands.timertriggers)])
             time.sleep(14 * 60)
             is_live = is_live_stream(config["Twitch"]["CHANNEL"])
             if not is_live:
                 sendMessage(s, "Detected channel offline.")
         else:
-            if "!retweet" in timers:
-                timers.remove("!retweet")
-                replies["!retweet"] = "Tweet for current stream not set."
+            if "!retweet" in commands.timertriggers:
+                commands.timertriggers.remove("!retweet")
+                commands.replies["!retweet"] = "Tweet for current stream not set."
                 sendMessage(s, "Removed retweet timer.")
             is_live = is_live_stream(config["Twitch"]["CHANNEL"])
             if is_live:
@@ -150,28 +158,26 @@ def taskLoop(s, replies, timers):
         time.sleep(60)
 
 
-
+commands = BotCommands()
 s = openSocket()
 joinRoom(s)
 readbuffer = ""
 message = ""
 requested=False
-triggers = []
-responses = {}
-clearances = {}
+
 mods = []
 permits = []
 
-timertriggers = config["Timers"]["TRIGGERS"].split(",")
+
 ACCESSTOKEN = config["Spotify"]["ACCESSTOKEN"]
 
-(triggers, responses, clearances) = load_commands()
-loopThread = Thread(target = taskLoop, args = (s, responses, timertriggers))
+commands.load_commands()
+loopThread = Thread(target = taskLoop)
 loopThread.setDaemon(True)
 loopThread.start()
-
-while True:
-    while True:
+runforever = True
+while runforever:
+    while runforever:
         try:
 
             
@@ -255,7 +261,7 @@ while True:
 
                         if is_live_stream('bradWOTO'):
                             bearer = "Bearer "+str(ACCESSTOKEN)
-                            r=requests.get("https://api.spotify.com/v1/me/player/currently-playing/", headers={"Authorization":str(bearer)});
+                            r=requests.get("https://api.spotify.com/v1/me/player/currently-playing/", headers={"Authorization":str(bearer)})
 
                             try:
                                 response = r.json()
@@ -272,7 +278,7 @@ while True:
 
                                 time.sleep(1)
 
-                                r=requests.get("https://api.spotify.com/v1/me/player/currently-playing/", headers={"Authorization":"Bearer "+ACCESSTOKEN});
+                                r=requests.get("https://api.spotify.com/v1/me/player/currently-playing/", headers={"Authorization":"Bearer "+ACCESSTOKEN})
                                 response = r.json()
 
                             result = ''
@@ -285,9 +291,9 @@ while True:
                         else:
                             print("brad is not live")
 
-                    if trigger.lower() in triggers:
-                        clearance = clearances[trigger.lower()]
-                        reply = responses[trigger.lower()]
+                    if trigger.lower() in commands.triggers:
+                        clearance = commands.clearances[trigger.lower()]
+                        reply = commands.replies[trigger.lower()]
 
                         if re.search(r""+trigger+" [@]?[a-zA-Z0-9]+", message ):
                             if clearance == 'mod' and user not in mods:
@@ -327,7 +333,7 @@ while True:
 
                     updatedCommand = re.split(r'^!editcom ![a-zA-Z0-9]{2,}\b ', message)[1]
                     command = message.split(' ')[1]
-                    if command.lower() not in triggers:
+                    if command.lower() not in commands.triggers:
                         sendMessage(s, "Command {} doesn't exist".format(command))
                         continue
                     else:
@@ -337,7 +343,7 @@ while True:
                         dbExecuteargs(query, (updatedCommand, command))
                         sendMessage(s, "Command: '"+command+"' edited.")
 
-                        (triggers, responses, clearances) = load_commands()
+                        commands.load_commands()
                         continue 
 
                 #add command
@@ -352,7 +358,7 @@ while True:
 
                         clearance = str(message[1].split('=')[1])
                         command = str(message[2]).lower()
-                        if command.lower() in triggers:
+                        if command.lower() in commands.triggers:
                             sendMessage(s, "Command {} already exists".format(command))
                             continue
                         reply = str(message[3])
@@ -363,9 +369,9 @@ while True:
 
                             dbExecuteargs(query, (command, reply, clearance))
                             sendMessage(s, "Command: '"+command+"' added.")
-                            triggers.append(command)
-                            responses[command] = reply
-                            clearances[command] = clearance
+                            commands.triggers.append(command)
+                            commands.replies[command] = reply
+                            commands.clearances[command] = clearance
                             #(triggers, responses, clearances) = load_commands()
                             continue
                     
@@ -374,10 +380,10 @@ while True:
                     message = message.split(' ', 2)
 
                     dbExecute("DELETE FROM commands3 WHERE command='"+str(message[1]).strip()+"' ")
-                    (triggers, responses, clearances) = load_commands()
-                    if (message[1].lower() in timertriggers):
-                        timertriggers.remove(message[1].lower())
-                        config.set("Timers", "TRIGGERS", ",".join(timertriggers))
+                    commands.load_commands()
+                    if (message[1].lower() in commands.timertriggers):
+                        commands.timertriggers.remove(message[1].lower())
+                        config.set("Timers", "TRIGGERS", ",".join(commands.timertriggers))
                         with open("config.ini", 'w') as configfile:
                             config.write(configfile)
                 
@@ -388,18 +394,31 @@ while True:
                                                     ## UTILS ## 
 #####################################################################################################################
 
+                if re.search(r"^!timertest$", message) and (user in mods):
+                    if not commands.timertest:
+                        sendMessage(s, "Manually starting timers.")
+                        commands.timertest = True
+                    else:
+                        sendMessage(s, "Stopping timers.")
+                        commands.timertest=False
+
+                if re.search(r"^!die$", message) and (user in mods):
+                    sendMessage(s, "Shutting Down...")
+                    runforever = False
+                    break
+
                 if re.search(r"^!timer ![a-zA-Z0-9]+", message ) and (user in mods):
                     target = message.split(" ")[1].lower()
-                    if target not in triggers:
+                    if target not in commands.triggers:
                         sendMessage(s,"Command {} does not exist".format(target))
                         continue
-                    if target in timertriggers:
-                        timertriggers.remove(target)
-                        config.set("Timers", "TRIGGERS", ",".join(timertriggers))
+                    if target in commands.timertriggers:
+                        commands.timertriggers.remove(target)
+                        config.set("Timers", "TRIGGERS", ",".join(commands.timertriggers))
                         sendMessage(s, "Command {} removed from timer.".format(target))
                     else:
-                        timertriggers.append(target)
-                        config.set("Timers", "TRIGGERS", ",".join(timertriggers))
+                        commands.timertriggers.append(target)
+                        config.set("Timers", "TRIGGERS", ",".join(commands.timertriggers))
                         sendMessage(s, "Command {} added to timer.".format(target))
                     with open("config.ini", 'w') as configfile:
                         config.write(configfile)
@@ -454,13 +473,13 @@ while True:
                 if re.search(r"^!tweet https://twitter.com/[a-zA-Z0-9]+/status/[0-9_]+", message ) and (user in mods):
                     url = message.split(" ")[1]
                       
-                    if "!retweet" not in triggers:
-                        triggers.append("!retweet")
+                    if "!retweet" not in commands.triggers:
+                        commands.triggers.append("!retweet")
                         createdtrigger = True
-                    responses["!retweet"] = "Let your friends know we're live and retweet out our stream: {}".format(url)
-                    clearances["!retweet"] = "all"
-                    if "!retweet" not in timertriggers:
-                        timertriggers.append("!retweet")
+                    commands.replies["!retweet"] = "Let your friends know we're live and retweet out our stream: {}".format(url)
+                    commands.clearances["!retweet"] = "all"
+                    if "!retweet" not in commands.timertriggers:
+                        commands.timertriggers.append("!retweet")
                     
                     sendMessage(s, "!retweet command and timer created/updated.")
 
@@ -529,7 +548,7 @@ while True:
 
 
         except:
-            print(doesntexist)
+            
             print("got error, restarting")
             
             pass
