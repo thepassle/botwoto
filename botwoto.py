@@ -12,12 +12,139 @@ import string
 import requests
 import datetime
 import configparser
-
+import socketserver
 from threading import Thread
 
 # Load config.ini
 config = configparser.ConfigParser()
 config.read('config.ini')
+
+class BotSocketHandler(socketserver.BaseRequestHandler):
+    
+    def handle(self):
+        # self.request is the TCP socket connected to the client
+        self.action_dispatch = {"reload_commands": self.do_reload, "add_command": self.do_addcom, "del_command": self.do_delcom, "edit_command": self.do_editcom}
+        self.data = self.request.recv(1024).strip()
+        print("Incoming connection...")
+        try:
+            self.jsonin = json.loads(self.data.decode("UTF-8"))
+        except:
+            self.reply = {"result": "Error", "msg": "Invalid JSON"}
+            self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+            return
+        else:  
+            print("JSON: {}".format(self.jsonin))
+            if "action" not in self.jsonin:
+                self.reply = {"result": "Error", "msg": "Missing argument action"}
+                self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+                return
+            try:
+                self.action_dispatch[self.jsonin["action"]]()
+            except:
+                self.reply = {"result": "Error", "msg": "Invalid action given."}
+                self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+                return
+        # just send back the same data, but upper-cased
+    def do_reload(self):
+        try:
+            print("Relading commands because of remote request.")
+            commands.load_commands()
+        except:
+            self.reply = {"result": "Error", "msg": "Loading commands failed."}
+            self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+        else:
+            self.reply = {"result": "OK", "msg": "Successfully reloaded commands."}
+            self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+
+    def do_addcom(self):
+        print("Remote connection requested to add a command.")
+        try:
+            if all (arg in self.jsonin for arg in("level", "trigger", "response")):
+                if self.jsonin["trigger"] not in commands.triggers:
+                    print("Inserting new command into bot.")
+                    commands.replies[self.jsonin["trigger"]] = self.jsonin["response"]
+                    commands.clearances[self.jsonin["trigger"]] = self.jsonin["level"]
+                    commands.triggers.append(self.jsonin["trigger"])
+                else:
+                    self.reply = {"result": "Error", "msg": "Command already exists."}
+                    self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+                    return
+            else:
+                self.reply = {"result": "Error", "msg": "Error missing argument for add_command."}
+                self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+                return
+        except:
+            self.reply = {"result": "Error", "msg": "Error adding new command to bot."}
+            self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+        else:
+            self.reply = {"result": "OK", "msg": "Successfully added command."}
+            self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+
+    def do_delcom(self):
+        print("Remote connection requested to remove a command.")
+        try:
+            if "trigger" in self.jsonin:
+                if self.jsonin["trigger"] in commands.triggers:
+                    try:
+                        print("Removing {}....".format(self.jsonin["trigger"]))
+                        commands.triggers.remove(self.jsonin["trigger"])
+                        commands.clearances.pop(self.jsonin["trigger"])
+                        commands.replies.pop(self.jsonin["trigger"])
+                    except:
+                        print("Exception")
+                    if (self.jsonin["trigger"] in commands.timertriggers):
+                        commands.timertriggers.remove(self.jsonin["trigger"])
+                        config.set("Timers", "TRIGGERS", ",".join(commands.timertriggers))
+                        with open("config.ini", 'w') as configfile:
+                            config.write(configfile)
+                else:
+                    self.reply = {"result": "Error", "msg": "Command does not exist."}
+                    self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+                    return
+            else:
+                self.reply = {"result": "Error", "msg": "Error missing argument for del_command."}
+                self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+                return
+        except:
+            self.reply = {"result": "Error", "msg": "Error removing command from bot."}
+            self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+        else:
+            self.reply = {"result": "OK", "msg": "Successfully removed command."}
+            self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+        
+    def do_editcom(self):
+        print("Remote connection requested to edit a command.")
+        try:
+            if all (arg in self.jsonin for arg in("level", "trigger", "response")):
+                if self.jsonin["trigger"] in commands.triggers:
+                    print("Editing command {}.".format(self.jsonin["trigger"]))
+                    commands.replies[self.jsonin["trigger"]] = self.jsonin["response"]
+                    commands.clearances[self.jsonin["trigger"]] = self.jsonin["level"]
+                    
+                else:
+                    self.reply = {"result": "Error", "msg": "Command does not exist in bot."}
+                    self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+                    return
+            else:
+                self.reply = {"result": "Error", "msg": "Error missing argument for edit_command."}
+                self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+                return
+        except:
+            self.reply = {"result": "Error", "msg": "Error editing command in bot."}
+            self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+        else:
+            self.reply = {"result": "OK", "msg": "Successfully edited command."}
+            self.request.sendall(json.dumps(self.reply).encode("UTF-8"))
+
+    
+def socketloop():
+   
+
+    
+    server = socketserver.TCPServer((config["Remote"]["host"], int(config["Remote"]["port"])), BotSocketHandler)
+        # Activate the server; this will keep running until you
+        # interrupt the program with Ctrl-C
+    server.serve_forever()
 
 class BotCommands:
 
@@ -38,7 +165,7 @@ class BotCommands:
 
 
         for command in allCommands:
-            print(repr(command[0]))
+           
             trigger = str(command[0])
             self.triggers.append(trigger)
             reply = command[1]
@@ -46,7 +173,7 @@ class BotCommands:
         
             self.replies[trigger] = reply
             self.clearances[trigger] = str(command[2])
-        print(self.triggers)
+        
 
 def dbGetOne(query):
     db = pymysql.connect(config["Database"]["HOSTNAME"],config["Database"]["USERNAME"],config["Database"]["PASSWORD"],config["Database"]["DBNAME"], charset='utf8mb4')
@@ -173,8 +300,11 @@ ACCESSTOKEN = config["Spotify"]["ACCESSTOKEN"]
 
 commands.load_commands()
 loopThread = Thread(target = taskLoop)
+socketThread = Thread(target = socketloop)
 loopThread.setDaemon(True)
+socketThread.setDaemon(True)
 loopThread.start()
+socketThread.start()
 runforever = True
 while runforever:
     while runforever:
