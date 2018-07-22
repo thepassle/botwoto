@@ -14,6 +14,7 @@ import datetime
 import configparser
 import socketserver
 from threading import Thread
+from datetime import datetime
 
 # Load config.ini
 config = configparser.ConfigParser()
@@ -469,8 +470,12 @@ while runforever:
                     else:
 
                         query = "UPDATE commands3 SET reply=%s WHERE command= %s"
-
                         dbExecuteargs(query, (updatedCommand, command))
+
+                        updatedAt = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                        query2 = "INSERT INTO history (command, reply, clearance, byUser, updatedAt) VALUES ( %s, %s, %s, %s, %s)"
+                        dbExecuteargs(query2, (command, reply, clearance, user, updatedAt))
+
                         sendMessage(s, "Command: '"+command+"' edited.")
 
                         commands.load_commands()
@@ -496,8 +501,12 @@ while runforever:
 
                         if command[0] == '!':
                             query = "INSERT INTO commands3 (command, reply, clearance) VALUES ( %s, %s, %s)"
-
                             dbExecuteargs(query, (command, reply, clearance))
+
+                            updatedAt = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                            query2 = "INSERT INTO history (command, reply, clearance, byUser, updatedAt) VALUES ( %s, %s, %s, %s, %s)"
+                            dbExecuteargs(query2, (command, reply, clearance, user, updatedAt))
+
                             sendMessage(s, "Command: '"+command+"' added.")
                             commands.triggers.append(command)
                             commands.replies[command] = reply
@@ -510,6 +519,8 @@ while runforever:
                     message = message.split(' ', 2)
 
                     dbExecute("DELETE FROM commands3 WHERE command='"+str(message[1]).strip()+"' ")
+                    dbExecute("DELETE FROM history WHERE command='"+str(message[1]).strip()+"' ")
+
                     commands.load_commands()
                     if (message[1].lower() in commands.timertriggers):
                         commands.timertriggers.remove(message[1].lower())
