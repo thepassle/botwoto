@@ -474,7 +474,7 @@ while runforever:
 
                         updatedAt = str(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
                         query2 = "INSERT INTO history (command, reply, clearance, byUser, updatedAt) VALUES ( %s, %s, %s, %s, %s)"
-                        dbExecuteargs(query2, (command, reply, clearance, user, updatedAt))
+                        dbExecuteargs(query2, (command, updatedCommand, clearance, user, updatedAt))
 
                         sendMessage(s, "Command: '"+command+"' edited.")
 
